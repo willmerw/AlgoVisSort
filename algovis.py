@@ -309,6 +309,7 @@ class Algovis:
 
             self.draw_bars()
             self.draw_single_bar(i,GREEN)
+            self.play_sound(tick,i)
 
             pygame.display.flip()
 
