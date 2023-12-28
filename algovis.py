@@ -20,6 +20,7 @@ class Algovis:
         self.screen = screen
         self.screen_height = screen_height
         self.screen_width = screen_width
+        self.orig_data = data[:]
         self.data = data
         self.op_time = 1
         self.bar_width = screen_width / len(data)
@@ -37,12 +38,9 @@ class Algovis:
         while not self.done:
             if i == len(self.data)-1:
                 self.done = True
-            self.screen.fill((0, 0, 0))
+            self.screen.fill(BLACK)
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.done = True
-            #self.play_sound(tick,i)
+            self.check_events()
 
             self.draw_bars()
 
@@ -83,8 +81,6 @@ class Algovis:
             self.draw_single_bar(i,GREEN)
 
 
-            for c in comp_pivs:
-                self.draw_single_bar(c,GREEN)
 
             if i < piv_i:
                 if self.data[i] > piv:
@@ -106,9 +102,11 @@ class Algovis:
                     i = i + 1
 
             if i == i_max+1:
-                print(piv_i)
                 comp_pivs.append(piv_i)
                 uncomp_pivs.remove(piv_i)
+                if len(uncomp_pivs) == 1:
+                    self.done = True
+                    self.sorted = True
                 piv_i = random.sample(uncomp_pivs,1)[0]
                 i = 0
                 i_max = len(self.data)-1
@@ -117,11 +115,13 @@ class Algovis:
                         i_max = p
                     if piv_i > p > i:
                         i = p
+            print(len(uncomp_pivs))
 
             pygame.display.flip()
 
             clock.tick(tick)
-
+        if self.done and self.sorted:
+            self.finish(tick)
     def vis_merge_sort(self, tick):
         i = 0
         l_i = 0
@@ -136,9 +136,7 @@ class Algovis:
         k = 0
         while not self.done:
             self.screen.fill(BLACK)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.done = True
+            self.check_events()
 
             self.draw_bars()
 
@@ -174,6 +172,11 @@ class Algovis:
                     l_i = 0
                     r_i = 0
                     section_complete = False
+
+                    if len(parts[0]) == len(self.data):
+                        print(len(parts[0]), len(self.data))
+                        self.done = True
+                        self.sorted = True
             if j+1 >= len(parts):
                 j = 0
                 i = 0
@@ -181,7 +184,8 @@ class Algovis:
             pygame.display.flip()
 
             clock.tick(tick)
-
+        if self.done and self.sorted:
+            self.finish(tick)
     def vis_counting_sort(self,tick):
         lowest = float("inf")
         highest = float("-inf")
@@ -210,7 +214,7 @@ class Algovis:
             self.draw_bars()
 
             if counting:
-
+                self.play_sound(tick, i)
                 count_ls[self.data[i] - lowest] += 1
                 i += 1
                 if i > len(self.data)-1:
@@ -221,7 +225,7 @@ class Algovis:
                     i = len(self.data) - 1
 
             elif sorting:
-
+                self.play_sound(tick, i)
                 aux_ls[count_ls[self.data[i]-lowest]-1] = self.data[i]
                 count_ls[self.data[i]-lowest] -= 1
 
@@ -231,16 +235,21 @@ class Algovis:
                     i = len(aux_ls) - 1
 
             else:
-                if i >= 0:
+                if i < 0:
+                    self.sorted = True
+                    self.done = True
+                else:
                     self.data[i] = aux_ls[i]
-
-                i = i - 1
+                    self.play_sound(tick, i)
+                    i = i - 1
             self.draw_single_bar(i, GREEN)
-            self.play_sound(tick, i)
+
 
             pygame.display.flip()
 
             clock.tick(tick)
+        if self.done and self.sorted:
+            self.finish(tick)
 
     def vis_radixmod10_sort(self, tick):
 
@@ -269,6 +278,7 @@ class Algovis:
                 if event.type == pygame.QUIT:
                     self.done = True
             if counting:
+                self.play_sound(tick, i)
                 if j <= k:
                     e = self.data[i]
                     print(((e - e % (10 ** (j - 1))) % 10 ** j)//(10**(j-1)))
@@ -284,6 +294,7 @@ class Algovis:
                         sorting = True
                         i = len(self.data) - 1
             elif sorting:
+                self.play_sound(tick, i)
                 e = self.data[i]
 
                 aux_ls[count_ls[((e - e % (10 ** (j - 1))) % 10 ** j)//(10**(j-1))]-1] = e
@@ -296,9 +307,14 @@ class Algovis:
                     sorting = False
                     update = True
             elif update:
+
                 self.data[i] = aux_ls[i]
+                self.play_sound(tick, i)
                 i = i - 1
                 if i < 0:
+                    if j > k:
+                        self.done = True
+                        self.sorted = True
                     counting = True
                     update = False
 
@@ -309,11 +325,13 @@ class Algovis:
 
             self.draw_bars()
             self.draw_single_bar(i,GREEN)
-            self.play_sound(tick,i)
+
 
             pygame.display.flip()
 
             clock.tick(tick)
+        if self.done and self.sorted:
+            self.finish(tick)
 
     def get_bar_height(self, e):
         return self.screen_height * (e / self.largest_elem)
@@ -340,6 +358,40 @@ class Algovis:
         sound = np.asarray([32767 * arr, 32767 * arr]).T.astype(np.int16)
         sound = pygame.sndarray.make_sound(sound.copy())
         sound.play()
+    def check_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.done = True
+            if event.type == pygame.KEYDOWN:
+
+                if event.key == pygame.K_r:
+                    pass
+
+    def finish(self,tick):
+        i = 0
+        bars = []
+        while True:
+            self.screen.fill(BLACK)
+
+            self.check_events()
+
+            self.draw_bars()
+            for b in bars:
+                self.draw_single_bar(b,GREEN)
+            if i < len(self.data):
+                bars.append(i)
+                self.play_sound(tick, i)
+                i+=1
+
+            else:
+                i = len(self.data)
+
+
+
+            pygame.display.flip()
+
+            clock.tick(tick)
+
 
     pygame.quit()
 
