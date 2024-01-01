@@ -115,7 +115,6 @@ class Algovis:
                         i_max = p
                     if piv_i > p > i:
                         i = p
-            print(len(uncomp_pivs))
 
             pygame.display.flip()
 
